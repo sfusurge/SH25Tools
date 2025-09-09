@@ -1,0 +1,56 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+:root {
+    --header: #F1ECEB;
+    --special: #A7928E;
+    --primary: #d0a79d;
+    --border: #91837c;
+    --border2: #5d4e4b;
+    --bg: #231f1f;
+    --bg2: #151311;
+
+    --red: #ea6962;
+    --orange: #e78a4e;
+    --yellow: #d8a657;
+    --green: #a9b665;
+    --aqua: #7daea3;
+    --purple: #d3869b;
+
+}
+
+h1, h2, h3 {
+    color: var(--header)
+}
+
+body {
+    background: var(--bg);
+    padding: 5rem;
+
+    color: var(--primary);
+}
+
+img {
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 300ms ease-out;
+    user-select: none;
+}
+
+button {
+    cursor: pointer;
+}
+
+
+
+.visually-hidden {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: auto;
+    margin: 0;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+    white-space: nowrap;
+}
