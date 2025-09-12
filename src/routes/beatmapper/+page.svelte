@@ -16,7 +16,12 @@
         let buffer = `# ${title}\n# ${difficulty}\n`;
 
         for (const b of beats.toSorted((a, b) => a.time - b.time)) {
-            buffer += `${b.value},${b.time.toFixed(3)}\n`;
+            buffer += `${b.value},${b.time.toFixed(3)}`;
+
+            if (b.endTime) {
+                buffer += `,${(b.endTime - b.time).toFixed(3)}`; // save durationn
+            }
+            buffer += "\n";
         }
 
         const anchor = document.createElement("a");
@@ -44,10 +49,11 @@
         beats = [];
 
         for (let i = 2; i < lines.length; i++) {
-            const [_value, _time] = lines[i].trim().split(",");
+            const [_value, _time, _duration] = lines[i].trim().split(",");
             beats.push({
                 value: parseInt(_value) as unknown as 0 | 1 | 2,
                 time: parseFloat(_time),
+                endTime: _duration ? parseFloat(_time) + parseFloat(_duration) : undefined,
             });
         }
     }
@@ -95,23 +101,43 @@
         {#snippet pending()}
             Loading audio...
         {/snippet}
+
+        {#snippet failed()}
+            <h1>An error has occured, please refresh the page.... (Did you upload a invalid audio file?)</h1>
+        {/snippet}
     </svelte:boundary>
 
     <h1>Instruction</h1>
     <ul>
-        <li>First upload a audio file to display and play it</li>
-        <li>Scroll wheen in the audio track to zoom in/out (jank)</li>
+        <li>Upload a Song.</li>
+        <li>Scrollwheel in audio track to zoom in/out</li>
         <li>Middle mouse and drag to shift the track, or use arrow keys to shift by 1 second</li>
         <li>Left click to set play progress (orange line)</li>
-        <li>Set the bpm/offset to maybe used as a guide when setting notes</li>
+        <li>Set the bpm/offset to be used as a guide when setting notes</li>
         <li>When hovering over a time, press 1, 2, 3 key to set a note</li>
-        <li>Click on a note to delete it.</li>
-        <li>Type in the title and click export to download as a file</li>
+        <li>Click, Click and drag to select notes.</li>
+        <li><strong>Right click a note to turn it into a long note</strong></li>
+        <li>Type in the title and click export to download as a file. (Include song title to keep track!)</li>
         <li>Use import input field and Import button to load a previously downloaded file</li>
     </ul>
 </div>
 
 <style>
+    li {
+        font-size: larger;
+        margin: 0.5rem;
+    }
+
+    li::before {
+        content: "";
+        margin: 0.5rem;
+        width: 0.5rem;
+        height: 0.5rem;
+        background-color: var(--orange);
+        display: inline-block;
+        border-radius: 50%;
+        transform: translate(0, 50%);
+    }
     .root {
         display: flex;
         flex-direction: column;

@@ -17,6 +17,16 @@
 
     let { beats = $bindable() }: Props = $props();
 
+    let resizing = $state(false);
+    let startX = $state(0);
+    let startY = $state(0);
+    let boxX = $state(-1);
+    let boxY = $state(-1);
+    let timeRange = $derived(Shared.endTime - Shared.startTime);
+    let selectedBeats: Set<Beat> = new SvelteSet();
+    let containerRef = $state<HTMLDivElement>();
+    let debug = $state<Record<string, any>>({});
+
     let sortedBeats = $derived(beats.toSorted((a, b) => a.time - b.time));
     let beatsInRange = $derived(
         sortedBeats.filter((b) => {
@@ -57,16 +67,25 @@
                 });
             }
         });
-    });
 
-    let startX = $state(0);
-    let startY = $state(0);
-    let boxX = $state(-1);
-    let boxY = $state(-1);
-    let timeRange = $derived(Shared.endTime - Shared.startTime);
-    let selectedBeats: Set<Beat> = new SvelteSet();
-    let containerRef = $state<HTMLDivElement>();
-    let debug = $state<Record<string, any>>({});
+        document.addEventListener("keydown", (e) => {
+            if ((e.target as Node).nodeName === "INPUT") {
+                return;
+            }
+
+            if (e.key === "Backspace" || e.key === "Delete") {
+                if (selectedBeats.size > 0) {
+                    const res = [];
+                    for (const b of beats) {
+                        if (!selectedBeats.has(b)) {
+                            res.push(b);
+                        }
+                    }
+                    beats = res;
+                }
+            }
+        });
+    });
 
     function noteMouseDown(e: MouseEvent, beat: Beat) {
         if (e.getModifierState("Shift")) {
@@ -82,7 +101,7 @@
             return;
         }
 
-        if (e.target === containerRef) {
+        if (e.target === containerRef && selectedBeats.size === 0) {
             // background drag
             const box = containerRef!.getBoundingClientRect();
             boxX = e.clientX - box.left;
@@ -90,10 +109,24 @@
         } else {
             // note drag
             const dt = (e.movementX / 1000) * timeRange;
-            for (const note of selectedBeats) {
-                note.time += dt;
-                if (note.endTime) {
-                    note.endTime += dt;
+
+            if (!resizing) {
+                for (const note of selectedBeats) {
+                    note.time += dt;
+                    if (note.endTime) {
+                        note.endTime += dt;
+                    }
+                }
+            } else {
+                for (const note of selectedBeats) {
+                    if (note.endTime) {
+                        note.endTime += dt;
+                        console.log(note.endTime);
+
+                        if (note.endTime < note.time + 1) {
+                            note.endTime = note.time + 1;
+                        }
+                    }
                 }
             }
         }
@@ -110,9 +143,33 @@
     }
 
     function backgroundMouseUp(e: MouseEvent) {
+        resizing = false;
+        if (boxX === -1 || boxY === -1) {
+            return;
+        }
+
         // calculate selection
-        const t0 = (startX / 1000) * timeRange;
-        const t1 = (boxX / 1000) * timeRange;
+        const t0 = (Math.min(startX, boxX) / 1000) * timeRange + Shared.startTime;
+        const t1 = (Math.max(boxX, startX) / 1000) * timeRange + Shared.startTime;
+
+        const half = 35 / 2;
+        const low = Math.min(startY, boxY);
+        const high = Math.max(startY, boxY);
+        const select0 = low <= 75 && high >= 75;
+        const select1 = low <= 150 && high >= 150;
+        const select2 = low <= 225 && high >= 225;
+        selectedBeats.clear();
+        for (const beat of beatsInRange) {
+            if (beat.time >= t0 && beat.time <= t1) {
+                if (
+                    (select0 && beat.value === 0) ||
+                    (select1 && beat.value === 1) ||
+                    (select2 && beat.value === 2)
+                ) {
+                    selectedBeats.add(beat);
+                }
+            }
+        }
 
         // reset states
         boxX = -1;
@@ -122,9 +179,6 @@
     }
 </script>
 
-<pre><code>
-    {JSON.stringify(debug, undefined, 4)}
-</code></pre>
 
 <div
     bind:this={containerRef}
@@ -162,13 +216,13 @@
         ></div>
     {/key}
     {#each beatsInRange as beat, index (index)}
-        <button
+        <div
             class="beat"
             class:red={beat.value === 0}
             class:blue={beat.value === 1}
             class:green={beat.value === 2}
             style="--x: {((beat.time - Shared.startTime) / (Shared.endTime - Shared.startTime)) *
-                1000}px;"
+                1000}px; --width: {(((beat.endTime ?? 0) - beat.time) / timeRange) * 1000}px;"
             onmousedown={(e) => {
                 e.preventDefault();
                 // e.stopPropagation();
@@ -178,16 +232,26 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                // delete note
-                beats.splice(
-                    beats.findIndex((b) => {
-                        return b.time === beat.time && b.value === beat.value;
-                    }),
-                    1,
-                );
+                if (beat.endTime) {
+                    beat.endTime = undefined;
+                } else {
+                    beat.endTime = beat.time + 2;
+                }
             }}
             class:selected={selectedBeats.has(beat)}
-        ></button>
+            class:hasTail={beat.endTime !== undefined}
+        >
+            {#if beat.endTime}
+                <button
+                    class="tail"
+                    style="--x: {((beat.endTime - beat.time) / timeRange) * 1000}px;"
+                    onmousedown={(e) => {
+                        resizing = true;
+                    }}
+                >
+                </button>
+            {/if}
+        </div>
     {/each}
 </div>
 
@@ -205,30 +269,91 @@
         position: absolute;
         left: 0;
         top: 0;
-        border: 2px solid var(--border);
-        border-radius: 50%;
         width: 36px;
         height: 36px;
         outline: none;
+        cursor: pointer;
     }
 
-    .beat.selected {
+    .beat::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+
+        width: 30px;
+        height: 30px;
+        border: 2px solid var(--border);
+    }
+
+    .beat.hasTail::before {
+        transform: translate(-50%, -50%) scale(0.75, 1) rotate(45deg);
+    }
+
+    .beat.hasTail::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: var(--width);
+        height: 4px;
+        z-index: -1;
+        transform: translate(0, -50%);
+    }
+
+    .beat.selected::before {
         border: 3px solid var(--header);
     }
 
     .red {
-        background-color: var(--red);
         transform: translate(calc(var(--x) - 50%), calc(75px - 50%));
+    }
+    .red::before,
+    .red > .tail::before,
+    .red.beat.hasTail::after {
+        background-color: var(--red);
     }
 
     .blue {
-        background-color: var(--aqua);
         transform: translate(calc(var(--x) - 50%), calc(150px - 50%));
     }
-
+    .blue::before,
+    .blue > .tail::before,
+    .blue.beat.hasTail::after {
+        background-color: var(--aqua);
+    }
     .green {
-        background-color: var(--green);
         transform: translate(calc(var(--x) - 50%), calc(225px - 50%));
+    }
+    .green::before,
+    .green > .tail::before,
+    .green.beat.hasTail::after {
+        background-color: var(--green);
+    }
+
+    .tail {
+        position: absolute;
+        top: 0;
+        left: var(--x);
+
+        width: 35px;
+        height: 35px;
+
+        outline: none;
+        cursor: pointer;
+    }
+
+    .tail::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%) scale(0.4, 1) rotate(45deg);
+
+        width: 30px;
+        height: 30px;
+        border: 2px solid var(--border);
     }
 
     .indicator {
@@ -254,4 +379,7 @@
         border: 2px solid var(--header);
         pointer-events: none;
     }
+
+
+ 
 </style>

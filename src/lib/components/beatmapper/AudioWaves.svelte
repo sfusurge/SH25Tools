@@ -77,7 +77,7 @@
     let audioPlayer: HTMLAudioElement | undefined = $state();
     let paused = $state(false);
     let timeRange = $derived(Shared.endTime - Shared.startTime);
-    let pointerLocation = $derived((Shared.hoverTime / timeRange) * 1000);
+    let pointerLocation = $derived(((Shared.hoverTime - Shared.startTime) / timeRange) * 1000);
 
     $effect(() => {
         if (audioPlayer && file) {
@@ -108,7 +108,7 @@
 {/snippet}
 
 <div class="canvasContainer">
-    {@render TimerLabel(renderer?.pointer.timer ?? 0, pointerLocation, renderer!.pointer.y)}
+    {@render TimerLabel(Shared.hoverTime ?? 0, pointerLocation, renderer!.pointer.y)}
     <div class="cursorIndicator" style="--x: {pointerLocation ?? 0}px"></div>
     <div
         class="cursorIndicator"
@@ -118,7 +118,7 @@
 </div>
 
 <p>
-    Start: {getTimeString(renderer?.startTime ?? 0)}, End: {getTimeString(renderer?.endTime ?? 0)}
+    Start: {getTimeString(Shared.startTime ?? 0)}, End: {getTimeString(Shared.endTime ?? 0)}
 </p>
 
 {#if renderer}

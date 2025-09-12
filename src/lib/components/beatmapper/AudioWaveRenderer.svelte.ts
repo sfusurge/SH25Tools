@@ -32,13 +32,10 @@ export class WaveRenderer {
     pointer = $state({
         x: 0,
         y: 0,
-        timer: 0
     })
 
-    startTime: number = $state(0);
-    endTime: number = $state(0);
     currentTime: number = $state(0);
-    indicatorX: number = $derived(((this.currentTime - this.startTime) / (this.endTime - this.startTime)) * this.width);
+    indicatorX: number = $derived(((this.currentTime - Shared.startTime) / (Shared.endTime - Shared.startTime)) * this.width);
 
     bpm: number = 1;
     bpmOffset: number = 0; // in seconds
@@ -63,16 +60,9 @@ export class WaveRenderer {
 
         this.init();
 
-        $effect(() => {
-            // disgusting jank
-            Shared.startTime = this.startTime;
-            Shared.endTime = this.endTime;
-            Shared.hoverTime = this.pointer.timer;
-            Shared.currentTime = this.currentTime;
-            console.log(Shared);
-        });
 
-        
+
+
     }
 
     updateSamples(sampleRate: number, sampleChunkSize: number, chunks: Float32Array) {
@@ -82,8 +72,8 @@ export class WaveRenderer {
 
         this.duration = (chunks.length * sampleChunkSize) / sampleRate;
 
-        this.startTime = 0;
-        this.endTime = this.duration;
+        Shared.startTime = 0;
+        Shared.endTime = this.duration;
 
         this.needRender = true;
     }
@@ -117,11 +107,11 @@ export class WaveRenderer {
      * @param x
      */
     pointToTime(x: number) {
-        return ((x / this.width) * (this.endTime - this.startTime)) + this.startTime;
+        return ((x / this.width) * (Shared.endTime - Shared.startTime)) + Shared.startTime;
     }
 
     timeToPoint(t: number) {
-        return ((t - this.startTime) / (this.endTime - this.startTime)) * this.width;
+        return ((t - Shared.startTime) / (Shared.endTime - Shared.startTime)) * this.width;
     }
 
 
@@ -134,15 +124,15 @@ export class WaveRenderer {
         center = Math.min(Math.max(center, 0), this.duration);
 
         const rangeChange = 1 + factor;
-        const range = this.endTime - this.startTime;
+        const range = Shared.endTime - Shared.startTime;
         const newRange = range * rangeChange;
         const dr = (newRange - range) / 2;
 
-        const oldCenter = this.startTime + range / 2;
+        const oldCenter = Shared.startTime + range / 2;
         const newCenter = oldCenter + Math.min(Math.abs(dr), Math.abs(center - oldCenter)) * Math.sign(center - oldCenter);
 
-        this.startTime = Math.max(newCenter - newRange / 2, 0);
-        this.endTime = Math.min(newCenter + newRange / 2, this.duration);
+        Shared.startTime = Math.max(newCenter - newRange / 2, 0);
+        Shared.endTime = Math.min(newCenter + newRange / 2, this.duration);
 
         this.needRender = true;
     }
@@ -154,8 +144,8 @@ export class WaveRenderer {
     }
 
     shift(offset: number) {
-        this.startTime = Math.max(0, Math.min(this.duration, this.startTime + offset));
-        this.endTime = Math.max(0, Math.min(this.duration, this.endTime + offset));
+        Shared.startTime = Math.max(0, Math.min(this.duration, Shared.startTime + offset));
+        Shared.endTime = Math.max(0, Math.min(this.duration, Shared.endTime + offset));
 
         this.needRender = true;
     }
@@ -165,7 +155,7 @@ export class WaveRenderer {
         // zoom
         this.canvas.addEventListener("wheel", (e) => {
             e.preventDefault();
-            this.zoom(Math.sign(e.deltaY) * this.delta, (e.offsetX / this.width) * (this.endTime - this.startTime) + this.startTime)
+            this.zoom(Math.sign(e.deltaY) * this.delta, (e.offsetX / this.width) * (Shared.endTime - Shared.startTime) + Shared.startTime)
             this.shift(e.deltaX * this.delta)
         });
 
@@ -174,12 +164,12 @@ export class WaveRenderer {
             this.pointer = {
                 x: e.offsetX,
                 y: e.offsetY,
-                timer: (e.offsetX / this.width) * (this.endTime - this.startTime) + this.startTime
             };
+            Shared.hoverTime = (e.offsetX / this.width) * (Shared.endTime - Shared.startTime) + Shared.startTime;
 
 
             if (e.buttons & 4) {
-                this.shift(-(e.movementX / this.width) * (this.endTime - this.startTime));
+                this.shift(-(e.movementX / this.width) * (Shared.endTime - Shared.startTime));
             }
         });
 
@@ -235,12 +225,12 @@ export class WaveRenderer {
         // render bpm markers
         const timePerBeat = 60 / this.bpm;
 
-        const bpmGap = this.width / ((this.endTime - this.startTime) / timePerBeat);
+        const bpmGap = this.width / ((Shared.endTime - Shared.startTime) / timePerBeat);
 
         if (bpmGap > 10) {
             this.ctx.strokeStyle = "#3d3331";
             this.ctx.lineWidth = 2;
-            for (let b = ((timePerBeat - (this.startTime % timePerBeat)) / timePerBeat) * bpmGap + (this.bpmOffset * bpmGap); b < this.width; b += bpmGap) {
+            for (let b = ((timePerBeat - (Shared.startTime % timePerBeat)) / timePerBeat) * bpmGap + (this.bpmOffset * bpmGap); b < this.width; b += bpmGap) {
                 this.ctx.beginPath();
                 this.ctx.moveTo(b, 0);
                 this.ctx.lineTo(b, this.height);
@@ -254,8 +244,8 @@ export class WaveRenderer {
         this.ctx.lineWidth = 2;
         this.ctx.lineJoin = "round";
 
-        const startChunk = this.timeToChunk(this.startTime);
-        const endChunk = this.timeToChunk(this.endTime) + 1;
+        const startChunk = this.timeToChunk(Shared.startTime);
+        const endChunk = this.timeToChunk(Shared.endTime) + 1;
         const chunkDiff = endChunk - startChunk;
 
         const points = 600;
