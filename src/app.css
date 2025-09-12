@@ -19,8 +19,18 @@
 
 }
 
-h1, h2, h3 {
-    color: var(--header)
+
+
+h1 {
+    font-size: xx-large;
+    color: var(--red);
+    margin: 1rem 0;
+}
+
+h2 {
+    font-size: x-large;
+    color: var(--orange);
+    margin: 0.5rem 0;
 }
 
 body {
