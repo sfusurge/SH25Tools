@@ -2,13 +2,11 @@
     // Code
 </script>
 
-<h1>
-    Stormhacks 25 Tools!
-</h1>
+<h1>Stormhacks 25 Tools!</h1>
 
 <div class="box">
-    <button class="bigBtn"> <a href="/beatmapper"> 🎵 BeatMapper</a> </button>
-<button class="bigBtn"> <a href="stats">📈 Usage Tracking</a> </button>
+    <a href="/beatmapper"><button class="bigBtn"> 🎵 BeatMapper </button></a>
+    <a href="stats"><button class="bigBtn">📈 Usage Tracking </button></a>
 </div>
 
 <style>
