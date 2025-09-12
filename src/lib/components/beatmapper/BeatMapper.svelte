@@ -1,6 +1,7 @@
 <script module>
     export interface Beat {
         time: number;
+        endTime?: number;
         value: 0 | 1 | 2;
     }
 </script>
@@ -8,6 +9,7 @@
 <script lang="ts">
     import { Shared } from "$lib/components/beatmapper/AudioWaveRenderer.svelte";
     import { onMount } from "svelte";
+    import { SvelteSet } from "svelte/reactivity";
 
     interface Props {
         beats: Beat[];
@@ -58,9 +60,57 @@
             }
         });
     });
+
+    let startX = $state(0);
+    let timeRange = $derived(Shared.endTime - Shared.startTime);
+    let selectedBeats: Set<Beat> = new SvelteSet();
+    let containerRef = $state<HTMLDivElement>();
+    function noteMouseDown(e: MouseEvent, beat: Beat) {
+        if (e.getModifierState("Shift")) {
+            selectedBeats.add(beat);
+        } else {
+            selectedBeats.clear();
+            selectedBeats.add(beat);
+        }
+    }
+    function mouseDrag(e: MouseEvent) {
+        if (e.button !== 0) {
+            return;
+        }
+
+        const dt = (e.movementX / 1000) * timeRange;
+        for (const note of selectedBeats) {
+            note.time += dt;
+            if (note.endTime) {
+                note.endTime += dt;
+            }
+        }
+    }
 </script>
 
-<div class="notesContainer">
+<p>Selected Count: {selectedBeats.size}</p>
+<p>Selected X: {startX}</p>
+<div
+    class="notesContainer"
+    onclick={(e) => {
+        const x = e.clientX - (e.target as Element).getBoundingClientRect().left;
+        startX = x;
+        if (e.target === e.currentTarget) {
+            selectedBeats.clear();
+        }
+    }}
+    onmousemove={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const x = e.clientX - (e.target as Element).getBoundingClientRect().left;
+        console.log(x);
+
+        Shared.hoverTime = (x / 1000) * timeRange;
+
+        mouseDrag(e);
+    }}
+>
     <div class="divider" style="top: 75px;"></div>
     <div class="divider" style="top: 150px;"></div>
     <div class="divider" style="top: 225px;"></div>
@@ -72,7 +122,7 @@
                 1000}px;"
         ></div>
     {/key}
-    {#each beatsInRange as beat, index}
+    {#each beatsInRange as beat, index (index)}
         <button
             class="beat"
             class:red={beat.value === 0}
@@ -80,7 +130,16 @@
             class:green={beat.value === 2}
             style="--x: {((beat.time - Shared.startTime) / (Shared.endTime - Shared.startTime)) *
                 1000}px;"
-            onclick={() => {
+            onclick={(e) => {
+                e.preventDefault();
+                // e.stopPropagation();
+                noteMouseDown(e, beat);
+            }}
+            oncontextmenu={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // delete note
                 beats.splice(
                     beats.findIndex((b) => {
                         return b.time === beat.time && b.value === beat.value;
@@ -89,6 +148,7 @@
                 );
             }}
             aria-label="beat"
+            class:selected={selectedBeats.has(beat)}
         ></button>
     {/each}
 </div>
@@ -100,7 +160,6 @@
         height: 300px;
 
         border: 1px solid var(--border);
-
         overflow: hidden;
     }
 
@@ -112,6 +171,11 @@
         border-radius: 50%;
         width: 1.5rem;
         height: 1.5rem;
+        outline: none;
+    }
+
+    .beat.selected {
+        border: 3px solid var(--header);
     }
 
     .red {

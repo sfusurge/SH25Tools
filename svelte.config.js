@@ -15,9 +15,13 @@ const config = {
 	},
 	compilerOptions: {
 		experimental: {
-			async:true
+			async: true
 		},
-	}
+		warningFilter: (w) => {
+			return !w.code.includes("a11y");
+		}
+	},
+
 };
 
 export default config;

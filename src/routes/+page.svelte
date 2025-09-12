@@ -12,9 +12,6 @@
 </div>
 
 <style>
-
-
-
     .bigBtn {
         display: flex;
         justify-content: center;
@@ -31,7 +28,6 @@
     .bigBtn:hover {
         scale: 1.1;
     }
-
 
     .box {
         display: flex;

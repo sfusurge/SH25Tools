@@ -1,6 +1,7 @@
 <script lang="ts">
     import {
         getTimeString,
+        Shared,
         WaveRenderer,
     } from "$lib/components/beatmapper/AudioWaveRenderer.svelte";
     import { onMount } from "svelte";
@@ -75,6 +76,8 @@
 
     let audioPlayer: HTMLAudioElement | undefined = $state();
     let paused = $state(false);
+    let timeRange = $derived(Shared.endTime - Shared.startTime);
+    let pointerLocation = $derived((Shared.hoverTime / timeRange) * 1000);
 
     $effect(() => {
         if (audioPlayer && file) {
@@ -105,8 +108,8 @@
 {/snippet}
 
 <div class="canvasContainer">
-    {@render TimerLabel(renderer?.pointer.timer ?? 0, renderer!.pointer.x, renderer!.pointer.y)}
-    <div class="cursorIndicator" style="--x: {renderer?.pointer.x ?? 0}px"></div>
+    {@render TimerLabel(renderer?.pointer.timer ?? 0, pointerLocation, renderer!.pointer.y)}
+    <div class="cursorIndicator" style="--x: {pointerLocation ?? 0}px"></div>
     <div
         class="cursorIndicator"
         style="--x:{renderer?.indicatorX}px; border-color: var(--orange);"
