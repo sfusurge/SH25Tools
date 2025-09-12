@@ -69,7 +69,10 @@ export class WaveRenderer {
             Shared.endTime = this.endTime;
             Shared.hoverTime = this.pointer.timer;
             Shared.currentTime = this.currentTime;
-        })
+            console.log(Shared);
+        });
+
+        
     }
 
     updateSamples(sampleRate: number, sampleChunkSize: number, chunks: Float32Array) {

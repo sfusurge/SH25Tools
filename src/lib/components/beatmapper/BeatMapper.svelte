@@ -32,8 +32,6 @@
 
     onMount(() => {
         document.addEventListener("keyup", (e) => {
-            console.log((e.target as Node).nodeName);
-
             if ((e.target as Node).nodeName === "INPUT") {
                 return;
             }
@@ -62,55 +60,96 @@
     });
 
     let startX = $state(0);
+    let startY = $state(0);
+    let boxX = $state(-1);
+    let boxY = $state(-1);
     let timeRange = $derived(Shared.endTime - Shared.startTime);
     let selectedBeats: Set<Beat> = new SvelteSet();
     let containerRef = $state<HTMLDivElement>();
+    let debug = $state<Record<string, any>>({});
+
     function noteMouseDown(e: MouseEvent, beat: Beat) {
         if (e.getModifierState("Shift")) {
             selectedBeats.add(beat);
-        } else {
+        } else if (selectedBeats.size <= 1) {
             selectedBeats.clear();
             selectedBeats.add(beat);
         }
     }
-    function mouseDrag(e: MouseEvent) {
-        if (e.button !== 0) {
+
+    function backgroundMouseMove(e: MouseEvent) {
+        if (e.buttons !== 1) {
             return;
         }
 
-        const dt = (e.movementX / 1000) * timeRange;
-        for (const note of selectedBeats) {
-            note.time += dt;
-            if (note.endTime) {
-                note.endTime += dt;
+        if (e.target === containerRef) {
+            // background drag
+            const box = containerRef!.getBoundingClientRect();
+            boxX = e.clientX - box.left;
+            boxY = e.clientY - box.top;
+        } else {
+            // note drag
+            const dt = (e.movementX / 1000) * timeRange;
+            for (const note of selectedBeats) {
+                note.time += dt;
+                if (note.endTime) {
+                    note.endTime += dt;
+                }
             }
         }
     }
-</script>
 
-<p>Selected Count: {selectedBeats.size}</p>
-<p>Selected X: {startX}</p>
-<div
-    class="notesContainer"
-    onclick={(e) => {
-        const x = e.clientX - (e.target as Element).getBoundingClientRect().left;
-        startX = x;
+    function backgroundMouseDown(e: MouseEvent) {
+        const box = containerRef!.getBoundingClientRect();
+        startX = e.clientX - box.left;
+        startY = e.clientY - box.top;
+
         if (e.target === e.currentTarget) {
             selectedBeats.clear();
         }
-    }}
+    }
+
+    function backgroundMouseUp(e: MouseEvent) {
+        // calculate selection
+        const t0 = (startX / 1000) * timeRange;
+        const t1 = (boxX / 1000) * timeRange;
+
+        // reset states
+        boxX = -1;
+        boxY = -1;
+        startX = 0;
+        startY = 0;
+    }
+</script>
+
+<pre><code>
+    {JSON.stringify(debug, undefined, 4)}
+</code></pre>
+
+<div
+    bind:this={containerRef}
+    class="notesContainer"
+    onmousedown={backgroundMouseDown}
     onmousemove={(e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        const x = e.clientX - (e.target as Element).getBoundingClientRect().left;
-        console.log(x);
-
+        const x = e.clientX - containerRef!.getBoundingClientRect().left;
         Shared.hoverTime = (x / 1000) * timeRange;
-
-        mouseDrag(e);
+        backgroundMouseMove(e);
     }}
+    onmouseup={backgroundMouseUp}
 >
+    {#if boxX > 0 && boxY > 0}
+        <div
+            class="box"
+            style="top: {Math.min(startY, boxY)}px; left:{Math.min(
+                startX,
+                boxX,
+            )}px; width: {Math.abs(startX - boxX)}px; height: {Math.abs(startY - boxY)}px; "
+        ></div>
+    {/if}
+
     <div class="divider" style="top: 75px;"></div>
     <div class="divider" style="top: 150px;"></div>
     <div class="divider" style="top: 225px;"></div>
@@ -130,7 +169,7 @@
             class:green={beat.value === 2}
             style="--x: {((beat.time - Shared.startTime) / (Shared.endTime - Shared.startTime)) *
                 1000}px;"
-            onclick={(e) => {
+            onmousedown={(e) => {
                 e.preventDefault();
                 // e.stopPropagation();
                 noteMouseDown(e, beat);
@@ -147,7 +186,6 @@
                     1,
                 );
             }}
-            aria-label="beat"
             class:selected={selectedBeats.has(beat)}
         ></button>
     {/each}
@@ -167,10 +205,10 @@
         position: absolute;
         left: 0;
         top: 0;
-        border: 1px solid var(--border);
+        border: 2px solid var(--border);
         border-radius: 50%;
-        width: 1.5rem;
-        height: 1.5rem;
+        width: 36px;
+        height: 36px;
         outline: none;
     }
 
@@ -209,5 +247,11 @@
         left: 0;
         width: 100%;
         border-top: 1px solid var(--border2);
+    }
+
+    .box {
+        position: absolute;
+        border: 2px solid var(--header);
+        pointer-events: none;
     }
 </style>

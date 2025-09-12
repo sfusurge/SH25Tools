@@ -56,34 +56,41 @@
 <div class="root">
     <!-- :skull: -->
     <svelte:boundary>
-        <label for="fileinput">File:<input type="file" id="fileinput" bind:files /></label>
-        <label for="bpmInput"
-            >Bpm: {bpm}
-            <input type="range" min="30" max="180" id="bpmInput" bind:value={bpm} /></label
-        >
-        <label for="offsetInput"
-            >Offset: {`${bpmOffset.toPrecision(3).padEnd(5, "0")}`}s
-            <input
-                step="any"
-                type="range"
-                min="0"
-                max="1"
-                id="offsetInput"
-                bind:value={bpmOffset}
-            /></label
-        >
+        <div class="hor">
+            <div class="ver">
+                <label for="fileinput">Song: <input type="file" id="fileinput" bind:files /></label>
+                <label for="bpmInput"
+                    >Bpm: {bpm}
+                    <input type="range" min="30" max="180" id="bpmInput" bind:value={bpm} /></label
+                >
+                <label for="offsetInput"
+                    >Offset: {`${bpmOffset.toPrecision(3).padEnd(5, "0")}`}s
+                    <input
+                        step="any"
+                        type="range"
+                        min="0"
+                        max="1"
+                        id="offsetInput"
+                        bind:value={bpmOffset}
+                    /></label
+                >
+            </div>
 
+            <div class="ver">
+                <label for="">Title: <input type="text" bind:value={title} /></label>
+                <label for=""
+                    >Difficulty: <input type="text" bind:value={difficulty} />
+                    <button onclick={exportMap}>Export</button></label
+                >
+
+                <label for=""
+                    >Import file: <input type="file" accept=".beatmap" bind:files={importedFiles} />
+                    <button onclick={importMap}>Import</button></label
+                >
+            </div>
+        </div>
         <AudioWaves {bpm} {bpmOffset} file={(files ?? [])[0]} />
         <BeatMapper bind:beats />
-
-        <label for="">Title: <input type="text" bind:value={title} /></label>
-        <label for="">Difficulty: <input type="text" bind:value={difficulty} /></label>
-        <button onclick={exportMap}>Export</button>
-
-        <label for=""
-            >Import file: <input type="file" accept=".beatmap" bind:files={importedFiles} /></label
-        >
-        <button onclick={importMap}>Import</button>
 
         {#snippet pending()}
             Loading audio...
@@ -124,5 +131,19 @@
     label {
         display: flex;
         align-items: center;
+    }
+
+    .ver {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-start;
+    }
+
+    .hor {
+        display: flex;
+        flex-direction: row;
+        gap: 2.5rem;
+        margin-bottom: 2rem;
     }
 </style>
