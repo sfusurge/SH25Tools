@@ -93,6 +93,7 @@
         bufferSource.buffer = decodedAudioBuffer;
         bufferSource.connect(actx.destination);
 
+        return bufferSource;
     }
 
     function togglePlay() {

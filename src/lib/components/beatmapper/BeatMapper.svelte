@@ -29,7 +29,11 @@
     let sortedBeats = $derived(beats.toSorted((a, b) => a.time - b.time));
     let beatsInRange = $derived(
         sortedBeats.filter((b) => {
-            return b.time >= Shared.startTime && b.time <= Shared.endTime;
+            if (!b.endTime){
+                return b.time >= Shared.startTime && b.time <= Shared.endTime;
+            } else{
+                return b.endTime >= Shared.startTime && b.time <= Shared.endTime;
+            }
         }),
     );
     let beatsAhead = $derived(
