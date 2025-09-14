@@ -169,6 +169,7 @@
             return;
         }
         if (
+            isPlaying &&
             renderer.currentTime > Shared.endTime &&
             Shared.endTime + timeRange < decodedAudioBuffer!.duration
         ) {
