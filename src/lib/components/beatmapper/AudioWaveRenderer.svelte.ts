@@ -59,10 +59,6 @@ export class WaveRenderer {
         this.duration = 0;
 
         this.init();
-
-
-
-
     }
 
     updateSamples(sampleRate: number, sampleChunkSize: number, chunks: Float32Array) {
@@ -171,11 +167,6 @@ export class WaveRenderer {
             if (e.buttons & 4) {
                 this.shift(-(e.movementX / this.width) * (Shared.endTime - Shared.startTime));
             }
-        });
-
-        this.canvas.addEventListener("click", (e) => {
-            e.preventDefault();
-            this.currentTime = this.pointToTime(e.offsetX);
         });
 
         document.addEventListener("keyup", (e) => {

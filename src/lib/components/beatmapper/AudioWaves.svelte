@@ -5,6 +5,7 @@
         WaveRenderer,
     } from "$lib/components/beatmapper/AudioWaveRenderer.svelte";
     import { onMount } from "svelte";
+    import { render } from "svelte/server";
 
     interface Props {
         bpm: number;
@@ -53,10 +54,13 @@
             sampleRate,
             sampleChunkSize,
             chunksCount,
+            decodedAudioBuffer: decoded,
         };
     }
 
-    const { sampleRate, sampleChunkSize, buffer, chunksCount } = $derived(await processFile(file));
+    const { sampleRate, sampleChunkSize, buffer, chunksCount, decodedAudioBuffer } = $derived(
+        await processFile(file),
+    );
     let canvas: HTMLCanvasElement | undefined = $state();
 
     const renderer = $derived.by(() => {
@@ -74,18 +78,79 @@
         renderer?.updateBpm(bpm, bpmOffset);
     });
 
-    let audioPlayer: HTMLAudioElement | undefined = $state();
-    let paused = $state(false);
+    let isPlaying = $state(false);
+    let lastPlayTime = $state(0);
+    let offsetTime = $state(0);
+    let audioSource = $state<AudioBufferSourceNode | undefined>();
     let timeRange = $derived(Shared.endTime - Shared.startTime);
     let pointerLocation = $derived(((Shared.hoverTime - Shared.startTime) / timeRange) * 1000);
 
-    $effect(() => {
-        if (audioPlayer && file) {
-            audioPlayer.src = URL.createObjectURL(file);
+    function createSource() {
+        if (!decodedAudioBuffer) {
+            return;
         }
-    });
+        const bufferSource = actx.createBufferSource();
+        bufferSource.buffer = decodedAudioBuffer;
+        bufferSource.connect(actx.destination);
+
+    }
+
+    function togglePlay() {
+        console.log("in toggle");
+
+        if (!renderer) {
+            return;
+        }
+        if (!isPlaying) {
+            audioSource = createSource();
+            audioSource!.start(actx.currentTime, offsetTime);
+            lastPlayTime = actx.currentTime;
+            isPlaying = true;
+        } else {
+            if (audioSource) audioSource.stop();
+            offsetTime += actx.currentTime - lastPlayTime;
+            isPlaying = false;
+        }
+    }
+
+    function seek(timeStamp: number) {
+        if (!decodedAudioBuffer || !renderer) {
+            return;
+        }
+        offsetTime = Math.max(0, Math.min(timeStamp, decodedAudioBuffer.duration));
+
+        if (isPlaying) {
+            if (audioSource) audioSource.stop();
+
+            audioSource = createSource();
+            audioSource!.start(actx.currentTime, offsetTime);
+            lastPlayTime = actx.currentTime;
+        } else {
+            togglePlay();
+        }
+    }
 
     onMount(() => {
+        function updateTime() {
+            if (!renderer) {
+                return;
+            }
+
+            if (isPlaying) {
+                renderer.currentTime = actx.currentTime - lastPlayTime + offsetTime;
+            } else {
+                renderer.currentTime = offsetTime;
+            }
+
+            if (renderer.currentTime > (decodedAudioBuffer?.duration ?? 0)) {
+                isPlaying = false;
+            }
+
+            requestAnimationFrame(updateTime);
+        }
+
+        requestAnimationFrame(updateTime);
+
         document.addEventListener("keypress", (e) => {
             const targetName = (e.target as Node).nodeName;
             if (targetName === "INPUT" || targetName === "BUTTON") {
@@ -93,9 +158,22 @@
             }
             e.preventDefault();
             if (e.key === " ") {
-                paused = !paused;
+                togglePlay();
             }
         });
+    });
+
+    $effect(() => {
+        if (!renderer) {
+            return;
+        }
+        if (
+            renderer.currentTime > Shared.endTime &&
+            Shared.endTime + timeRange < decodedAudioBuffer!.duration
+        ) {
+            const range = timeRange;
+            renderer.shift(range * 0.75);
+        }
     });
 </script>
 
@@ -114,22 +192,26 @@
         class="cursorIndicator"
         style="--x:{renderer?.indicatorX}px; border-color: var(--orange);"
     ></div>
-    <canvas bind:this={canvas} width="1000" height="300"></canvas>
+    <canvas
+        bind:this={canvas}
+        width="1000"
+        height="300"
+        onclick={(e) => {
+            seek(renderer?.pointToTime(e.offsetX) ?? 0);
+        }}
+    ></canvas>
 </div>
 
 <p>
-    Start: {getTimeString(Shared.startTime ?? 0)}, End: {getTimeString(Shared.endTime ?? 0)}
+    Start: {getTimeString(Shared.startTime ?? 0)}, End: {getTimeString(Shared.endTime ?? 0)},
+    Current: {getTimeString(renderer?.currentTime ?? 0)}
 </p>
-
-{#if renderer}
-    <audio bind:currentTime={renderer.currentTime} bind:this={audioPlayer} bind:paused></audio>
-{/if}
 
 <button
     onclick={() => {
-        paused = !paused;
+        togglePlay();
     }}
-    >{paused ? "Play" : "Pause"}
+    >{!isPlaying ? "Play" : "Pause"}
 </button>
 
 <style>

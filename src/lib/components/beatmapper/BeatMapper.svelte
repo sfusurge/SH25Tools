@@ -25,7 +25,6 @@
     let timeRange = $derived(Shared.endTime - Shared.startTime);
     let selectedBeats: Set<Beat> = new SvelteSet();
     let containerRef = $state<HTMLDivElement>();
-    let debug = $state<Record<string, any>>({});
 
     let sortedBeats = $derived(beats.toSorted((a, b) => a.time - b.time));
     let beatsInRange = $derived(
@@ -179,7 +178,6 @@
     }
 </script>
 
-
 <div
     bind:this={containerRef}
     class="notesContainer"
@@ -189,7 +187,7 @@
         e.stopPropagation();
 
         const x = e.clientX - containerRef!.getBoundingClientRect().left;
-        Shared.hoverTime = (x / 1000) * timeRange;
+        Shared.hoverTime = (x / 1000) * timeRange + Shared.startTime;
         backgroundMouseMove(e);
     }}
     onmouseup={backgroundMouseUp}
@@ -379,7 +377,4 @@
         border: 2px solid var(--header);
         pointer-events: none;
     }
-
-
- 
 </style>
