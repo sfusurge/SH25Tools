@@ -14,7 +14,8 @@ export const Shared = $state({
     hoverTime: 0,
     startTime: 0,
     endTime: 0,
-    currentTime: 0
+    currentTime: 0,
+    setAtCurrentTime: false
 })
 
 

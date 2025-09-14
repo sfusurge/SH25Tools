@@ -64,3 +64,14 @@ button {
     width: 1px;
     white-space: nowrap;
 }
+
+
+.hor {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+input[type='checkbox'] {
+    
+}

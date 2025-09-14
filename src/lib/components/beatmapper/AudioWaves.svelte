@@ -146,7 +146,7 @@
             if (renderer.currentTime > (decodedAudioBuffer?.duration ?? 0)) {
                 isPlaying = false;
             }
-
+            Shared.currentTime = renderer.currentTime;
             requestAnimationFrame(updateTime);
         }
 
@@ -209,12 +209,16 @@
     Current: {getTimeString(renderer?.currentTime ?? 0)}
 </p>
 
-<button
-    onclick={() => {
-        togglePlay();
-    }}
-    >{!isPlaying ? "Play" : "Pause"}
-</button>
+<div class="hor">
+    <button
+        onclick={() => {
+            togglePlay();
+        }}
+        >{!isPlaying ? "Play" : "Pause"}
+    </button>
+
+    <label for="check">Set Note at Current Time:<input id="check" type="checkbox" bind:checked={Shared.setAtCurrentTime}></label>
+</div>
 
 <style>
     button,

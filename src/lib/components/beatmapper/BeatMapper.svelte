@@ -7,7 +7,7 @@
 </script>
 
 <script lang="ts">
-    import { Shared } from "$lib/components/beatmapper/AudioWaveRenderer.svelte";
+    import { Shared, WaveRenderer } from "$lib/components/beatmapper/AudioWaveRenderer.svelte";
     import { onMount } from "svelte";
     import { SvelteSet } from "svelte/reactivity";
 
@@ -26,12 +26,13 @@
     let selectedBeats: Set<Beat> = new SvelteSet();
     let containerRef = $state<HTMLDivElement>();
 
+
     let sortedBeats = $derived(beats.toSorted((a, b) => a.time - b.time));
     let beatsInRange = $derived(
         sortedBeats.filter((b) => {
-            if (!b.endTime){
+            if (!b.endTime) {
                 return b.time >= Shared.startTime && b.time <= Shared.endTime;
-            } else{
+            } else {
                 return b.endTime >= Shared.startTime && b.time <= Shared.endTime;
             }
         }),
@@ -48,24 +49,25 @@
             if ((e.target as Node).nodeName === "INPUT") {
                 return;
             }
+            const t = Shared.setAtCurrentTime ? Shared.currentTime : Shared.hoverTime;
 
             if (e.key === "1") {
                 beats.push({
-                    time: Shared.hoverTime,
+                    time: t,
                     value: 0,
                 });
             }
 
             if (e.key === "2") {
                 beats.push({
-                    time: Shared.hoverTime,
+                    time: t,
                     value: 1,
                 });
             }
 
             if (e.key === "3") {
                 beats.push({
-                    time: Shared.hoverTime,
+                    time: t,
                     value: 2,
                 });
             }
