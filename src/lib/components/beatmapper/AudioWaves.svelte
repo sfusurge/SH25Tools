@@ -82,7 +82,8 @@
     let lastPlayTime = $state(0);
     let offsetTime = $state(0);
     let audioSource = $state<AudioBufferSourceNode | undefined>();
-    let timeRange = $derived(Shared.endTime - Shared.startTime);
+    let playSpeed = $state(1);
+    let timeRange = $derived((Shared.endTime - Shared.startTime) / 1);
     let pointerLocation = $derived(((Shared.hoverTime - Shared.startTime) / timeRange) * 1000);
 
     function createSource() {
@@ -92,7 +93,7 @@
         const bufferSource = actx.createBufferSource();
         bufferSource.buffer = decodedAudioBuffer;
         bufferSource.connect(actx.destination);
-
+        bufferSource.playbackRate.value = playSpeed;
         return bufferSource;
     }
 
@@ -105,11 +106,11 @@
         if (!isPlaying) {
             audioSource = createSource();
             audioSource!.start(actx.currentTime, offsetTime);
-            lastPlayTime = actx.currentTime;
+            lastPlayTime = actx.currentTime * playSpeed;
             isPlaying = true;
         } else {
             if (audioSource) audioSource.stop();
-            offsetTime += actx.currentTime - lastPlayTime;
+            offsetTime += actx.currentTime * playSpeed - lastPlayTime;
             isPlaying = false;
         }
     }
@@ -125,32 +126,37 @@
 
             audioSource = createSource();
             audioSource!.start(actx.currentTime, offsetTime);
-            lastPlayTime = actx.currentTime;
+            lastPlayTime = actx.currentTime * playSpeed;
         } else {
             togglePlay();
         }
+
+        updateTime();
+    }
+
+    function updateTime() {
+        if (!renderer) {
+            return;
+        }
+
+        if (isPlaying) {
+            renderer.currentTime = actx.currentTime * playSpeed - lastPlayTime + offsetTime;
+        } else {
+            renderer.currentTime = offsetTime;
+        }
+
+        if (renderer.currentTime > (decodedAudioBuffer?.duration ?? 0)) {
+            isPlaying = false;
+        }
+        Shared.currentTime = renderer.currentTime;
     }
 
     onMount(() => {
-        function updateTime() {
-            if (!renderer) {
-                return;
-            }
-
-            if (isPlaying) {
-                renderer.currentTime = actx.currentTime - lastPlayTime + offsetTime;
-            } else {
-                renderer.currentTime = offsetTime;
-            }
-
-            if (renderer.currentTime > (decodedAudioBuffer?.duration ?? 0)) {
-                isPlaying = false;
-            }
-            Shared.currentTime = renderer.currentTime;
-            requestAnimationFrame(updateTime);
-        }
-
-        requestAnimationFrame(updateTime);
+        const _updateTime = () => {
+            updateTime();
+            requestAnimationFrame(_updateTime);
+        };
+        requestAnimationFrame(_updateTime);
 
         document.addEventListener("keypress", (e) => {
             const targetName = (e.target as Node).nodeName;
@@ -177,6 +183,12 @@
             renderer.shift(range * 0.75);
         }
     });
+
+    $effect(() => {
+        if (playSpeed && audioSource) {
+            audioSource.playbackRate.value = playSpeed;
+        }
+    });
 </script>
 
 {#snippet TimerLabel(time: number, x: number, y: number)}
@@ -192,7 +204,8 @@
     <div class="cursorIndicator" style="--x: {pointerLocation ?? 0}px"></div>
     <div
         class="cursorIndicator"
-        style="--x:{renderer?.indicatorX}px; border-color: var(--orange);"
+        style="--x:{(((renderer?.currentTime ?? 0) - Shared.startTime) / timeRange) *
+            1000}px; border-color: var(--orange);"
     ></div>
     <canvas
         bind:this={canvas}
@@ -217,7 +230,28 @@
         >{!isPlaying ? "Play" : "Pause"}
     </button>
 
-    <label for="check">Set Note at Current Time:<input id="check" type="checkbox" bind:checked={Shared.setAtCurrentTime}></label>
+    <label for="check"
+        >Set Note at Current Time:<input
+            id="check"
+            type="checkbox"
+            bind:checked={Shared.setAtCurrentTime}
+        /></label
+    >
+
+    <label for=""
+        >Speed: {playSpeed}
+        <button
+            onclick={() => {
+                playSpeed += 0.25;
+            }}
+            >+
+        </button>
+        <button
+            onclick={() => {
+                playSpeed -= 0.25;
+            }}>-</button
+        ></label
+    >
 </div>
 
 <style>
