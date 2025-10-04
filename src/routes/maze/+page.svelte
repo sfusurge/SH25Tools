@@ -113,14 +113,17 @@
 </div>
 <div class="hor" style="align-items: flex-end;">
     {#each Object.entries(EntityMap) as [name, id], index (id)}
-        <div
+        <button
             class="ver"
             style="align-items: center; border: 2px solid transparent;"
             class:selected={id === entityType}
+            onclick={() => {
+                entityType = id;
+            }}
         >
             <img class="label" src={SpriteMap[id]} alt="" />
             <div>{index + 1}.{name}</div>
-        </div>
+        </button>
     {/each}
 </div>
 
