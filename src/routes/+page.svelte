@@ -7,6 +7,7 @@
 <div class="box">
     <a href="/beatmapper"><button class="bigBtn"> 🎵 BeatMapper </button></a>
     <a href="stats"><button class="bigBtn">📈 Usage Tracking </button></a>
+    <a href="maze"><button class="bigBtn">🌽 Maze</button></a>
 </div>
 
 <style>
@@ -31,5 +32,8 @@
         display: flex;
         flex-direction: row;
         gap: 1rem;
+
+        max-width: 100%;
+        flex-flow: wrap;
     }
 </style>

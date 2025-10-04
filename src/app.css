@@ -72,6 +72,12 @@ button {
     align-items: center;
 }
 
-input[type='checkbox'] {
-    
+input {
+    border: 1px solid var(--primary);
+    padding: 0.5rem;
+    font-size: medium;
+}
+
+label {
+    font-size: medium;
 }

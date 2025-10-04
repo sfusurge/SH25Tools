@@ -22,3 +22,11 @@ export async function getGameStats() {
         return prev;
     }, {} as { [key: string]: any }) as { [key: string]: any };
 }
+
+// type of any L
+export async function publishMaze(maze: any, ownerId: string) {
+    const docRef = doc(db, 'maze', `${ownerId}-${maze.id}`);
+    const newMaze = { ...maze };
+    newMaze.obstacleMap = JSON.stringify(newMaze.obstacleMap);
+    await setDoc(docRef, newMaze, { merge: true });
+}
