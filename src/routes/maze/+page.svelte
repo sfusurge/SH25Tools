@@ -145,6 +145,20 @@
     {/if}
 </div>
 
+<h2>Instructions...</h2>
+<ol>
+    <li>Write a room name</li>
+    <li>
+        Choose a room size (rows, cols) <b><i>** CHANGING SIZE RESETS THE WHOLE ROOM **</i></b>
+    </li>
+    <li>Use keyboard 1, 2, 3, 4, 5, 6 number keys to choose which entity to place.</li>
+    <li>Left click to place, right click to remove.</li>
+    <li>Use load/export to save your process</li>
+    <li>
+        Click submit to submit your maze (we'll receive, even if it looks like nothing happened)
+    </li>
+</ol>
+
 <style>
     .hor {
         display: flex;
